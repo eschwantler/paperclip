@@ -801,6 +801,8 @@ const kimiLocalAdapter: ServerAdapterModule = {
 const hermesGatewayAdapter: ServerAdapterModule = {
   ...createHermesGatewayServerAdapter(),
   runtimeToolDelivery: "invocation_context",
+  // The agent has no Paperclip API credentials in this adapter; Paperclip records the outcome on its behalf.
+  recordsOutcomeForAgent: true,
 };
 
 const hermesLocalAdapter: ServerAdapterModule = {

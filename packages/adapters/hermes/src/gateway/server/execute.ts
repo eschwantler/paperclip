@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type {
   AdapterExecutionContext,
   AdapterExecutionResult,
@@ -301,8 +302,12 @@ function buildInput(ctx: AdapterExecutionContext, paperclipApiUrl: string | null
           "Execution contract:",
           "- Take concrete action in this run when the task is actionable.",
           "- Do not stop at a plan unless the issue asks for planning only.",
-          "- Leave durable progress and update the issue to a clear final disposition.",
-          "- Use X-Paperclip-Run-Id on mutating Paperclip API requests when a Paperclip API key is available.",
+          ...(ctx.context.paperclipRecordsReplyOutcome === true
+            ? ["- Your reply is recorded as this task's outcome automatically. Don't try to change the task's status."]
+            : [
+                "- Leave durable progress and update the issue to a clear final disposition.",
+                "- Use X-Paperclip-Run-Id on mutating Paperclip API requests when a Paperclip API key is available.",
+              ]),
           "",
         ]),
     wakePrompt,
@@ -690,6 +695,10 @@ export function mapFinalResultForTest(input: {
     ...(usage ? { usage } : {}),
     ...(costUsd !== null ? { costUsd } : {}),
     ...(output ? { summary: output.slice(0, 2_000) } : {}),
+    // Only a clean completed run with a real reply counts; every failure keeps today's recovery path.
+    ...(!mapped.errorCode && mapped.exitCode === 0 && output && output.trim()
+      ? { outcome: { kind: "reply_delivered" as const, replyDigest: createHash("sha256").update(output).digest("hex") } }
+      : {}),
     sessionId: sessionDisplayId,
     sessionParams: {
       hermesRunId: input.terminal.runId,

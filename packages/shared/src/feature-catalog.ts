@@ -243,6 +243,14 @@ export const INSTANCE_FEATURE_CATALOG: Record<InstanceFeatureKey, FeatureCatalog
     cloudDefault: false,
     selfHostedDefault: false,
   },
+  enableGatewayReplyOutcome: {
+    title: "Record Gateway replies as task outcomes",
+    description:
+      "When a Hermes Gateway agent replies successfully, record that reply as the task's outcome so Paperclip does not keep re-waking the agent to \"restore\" a disposition it cannot set.",
+    tier: "preference",
+    cloudDefault: false,
+    selfHostedDefault: false,
+  },
   enablePersistentClaudeSessions: {
     title: "Persistent Claude sessions",
     description:

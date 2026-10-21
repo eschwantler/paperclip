@@ -222,6 +222,7 @@ export function InstanceExperimentalSettings() {
   const enableBuiltInAgents = experimentalQuery.data?.enableBuiltInAgents === true;
   const enableBetaSkills = experimentalQuery.data?.enableBetaSkills === true;
   const enablePersistentClaudeSessions = experimentalQuery.data?.enablePersistentClaudeSessions === true;
+  const enableGatewayReplyOutcome = experimentalQuery.data?.enableGatewayReplyOutcome === true;
   const enableSummaries = experimentalQuery.data?.enableSummaries === true;
   const enableStatusCards = experimentalQuery.data?.enableStatusCards === true;
   const summariesManaged = managedKeys.enableSummaries?.managed === true;
@@ -493,6 +494,18 @@ export function InstanceExperimentalSettings() {
           settingKey="enablePersistentClaudeSessions"
           managed={managedKeys.enablePersistentClaudeSessions}
           ariaLabel="Toggle persistent Claude sessions experimental setting"
+        />
+
+        <ExperimentalToggleCard
+          title="Record Gateway replies as task outcomes"
+          description="When a Hermes Gateway agent replies successfully, record that reply as the task's outcome. Gateway agents have no Paperclip API access by design, so without this Paperclip keeps re-waking them to set a final status they cannot set. Applies to the Hermes Gateway adapter only."
+          footnote="Takes effect on the next run. Only moves a task that is still in progress and still assigned to that agent. Each agent can choose the status with replyOutcomeStatus in its runtime config: done (default) or in_review."
+          checked={enableGatewayReplyOutcome}
+          onCheckedChange={(checked) => toggleMutation.mutate({ enableGatewayReplyOutcome: checked })}
+          disabled={toggleMutation.isPending}
+          settingKey="enableGatewayReplyOutcome"
+          managed={managedKeys.enableGatewayReplyOutcome}
+          ariaLabel="Toggle record gateway replies as task outcomes experimental setting"
         />
 
         <ExperimentalToggleCard

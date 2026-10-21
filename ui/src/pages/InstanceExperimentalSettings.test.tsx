@@ -100,6 +100,7 @@ function defaultExperimentalSettings(): InstanceExperimentalSettingsPayload {
     enableBuiltInAgents: false,
     enableBetaSkills: false,
     enablePersistentClaudeSessions: false,
+    enableGatewayReplyOutcome: false,
     enableSummaries: false,
     enableStatusCards: false,
     enableDecisions: false,

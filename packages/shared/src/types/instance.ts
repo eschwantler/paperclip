@@ -92,6 +92,8 @@ export interface InstanceExperimentalSettings {
   enableBetaSkills: boolean;
   /** Keep each task's Claude Code conversation between runs of managed-connection agents. */
   enablePersistentClaudeSessions: boolean;
+  /** Record a successful reply from a credential-less gateway adapter as the task's outcome. */
+  enableGatewayReplyOutcome: boolean;
   enableSummaries: boolean;
   enableStatusCards: boolean;
   enableDecisions: boolean;

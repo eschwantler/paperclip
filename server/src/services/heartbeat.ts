@@ -20,6 +20,7 @@ import { hasStopOnlyCleanup, settleStopOnlyCleanup } from "./sandbox-stop-and-re
 import { applyWorkspaceRestoreFailure } from "@paperclipai/adapter-utils/workspace-restore-result";
 import { hasWorkspaceRestoreFailure } from "@paperclipai/shared";
 import { externalConversationStateSql, nonIdleSlackIssueCondition } from "./slack-conversation-state.js";
+import { applyAdapterReplyOutcome, createReplyOutcomeDeps } from "./adapter-reply-outcome.js";
 import { settleSlackConversation } from "./slack-conversation-lifecycle.js";
 import { publicChatTaskUrl } from "./chat-task-url.js";
 import { toolActionDeliveryService } from "./tool-action-delivery.js";
@@ -25064,6 +25065,14 @@ export function heartbeatService(
             ) {
               adapterContext.paperclipPersistManagedClaudeSessions = true;
             }
+            // Same pattern: tells the adapter its reply will be recorded as the task outcome, so the
+            // prompt stops asking the agent to set a status it has no credentials to set.
+            if (
+              getServerAdapter(agent.adapterType).recordsOutcomeForAgent === true &&
+              (await instanceSettings.getExperimental()).enableGatewayReplyOutcome === true
+            ) {
+              adapterContext.paperclipRecordsReplyOutcome = true;
+            }
             if (managedMcpConfig) {
               adapterContext.paperclipManagedMcp = managedMcpConfig;
             }
@@ -25967,6 +25976,36 @@ export function heartbeatService(
             await scheduleInteractionContinuationInfrastructureRetryIfEligible(
               livenessRun,
               agent,
+            );
+          }
+          // The reply comment is stored; record it as the outcome before anything below can decide the
+          // agent "stopped without an outcome" and schedule a repair wake.
+          try {
+            const replyOutcome = await applyAdapterReplyOutcome(
+              createReplyOutcomeDeps(db, (id, data) => issuesSvc.update(id, data)),
+              {
+                enabled: (await instanceSettings.getExperimental()).enableGatewayReplyOutcome === true,
+                adapterRecordsOutcome: getServerAdapter(agent.adapterType).recordsOutcomeForAgent === true,
+                runSucceeded: outcome === "succeeded",
+                outcome: adapterResult.outcome,
+                issueId: issueId ?? null,
+                run: { id: livenessRun.id },
+                agent: { id: agent.id, runtimeConfig: agent.runtimeConfig },
+              },
+            );
+            if (replyOutcome.recorded) {
+              await appendRunEvent(livenessRun, {
+                eventType: "lifecycle",
+                stream: "system",
+                level: "info",
+                message: `Reply recorded as the task outcome (${replyOutcome.status})`,
+                payload: { reason: "gateway_reply_recorded_as_outcome", status: replyOutcome.status },
+              });
+            }
+          } catch (err) {
+            logger.warn(
+              { err, runId: livenessRun.id, issueId },
+              "failed to record adapter reply as the task outcome",
             );
           }
           const issueCommentPolicyResult = await finalizeIssueCommentPolicy(

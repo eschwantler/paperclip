@@ -111,6 +111,7 @@ describe("instance experimental settings validators", () => {
 
     expect(settings.enableBetaSkills).toBe(false);
     expect(settings.enablePersistentClaudeSessions).toBe(false);
+    expect(settings.enableGatewayReplyOutcome).toBe(false);
   });
 
   it("defaults the retired Apps compatibility key on", () => {

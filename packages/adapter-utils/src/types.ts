@@ -84,6 +84,11 @@ export interface AdapterExecutionResult {
     sessionPreserved: true;
     actionOutcomes: "settled";
   };
+  /**
+   * Set only by an adapter that declares `recordsOutcomeForAgent` and only on a successful run with
+   * a non-empty reply. Paperclip may record the reply as the task's outcome on the agent's behalf.
+   */
+  outcome?: { kind: "reply_delivered"; replyDigest: string };
   exitCode: number | null;
   signal: string | null;
   timedOut: boolean;
@@ -461,6 +466,11 @@ export interface AcpTargetDescriptor {
 
 export interface ServerAdapterModule {
   type: string;
+  /**
+   * The agent has no Paperclip API credentials in this adapter, so it cannot record its own outcome.
+   * A successful reply may be recorded as the task's outcome by Paperclip (see `outcome` on the result).
+   */
+  recordsOutcomeForAgent?: boolean;
   execute(ctx: AdapterExecutionContext): Promise<AdapterExecutionResult>;
   testEnvironment(ctx: AdapterEnvironmentTestContext): Promise<AdapterEnvironmentTestResult>;
   acp?: AcpTargetDescriptor;

@@ -60,6 +60,7 @@ describe("instance settings service", () => {
       enableBuiltInAgents: true,
       enableBetaSkills: false,
       enablePersistentClaudeSessions: false,
+      enableGatewayReplyOutcome: false,
       enableSummaries: false,
       enableStatusCards: false,
       enableDecisions: false,
@@ -218,6 +219,12 @@ describe("instance settings service", () => {
     expect(normalizeExperimentalSettings(undefined).enableBuiltInAgents).toBe(false);
     expect(normalizeExperimentalSettings({}).enableBuiltInAgents).toBe(false);
     expect(normalizeExperimentalSettings({ enableExternalObjects: true }).enableBuiltInAgents).toBe(false);
+  });
+
+  it("preserves enableGatewayReplyOutcome and defaults it off for legacy stored settings", () => {
+    expect(normalizeExperimentalSettings(undefined).enableGatewayReplyOutcome).toBe(false);
+    expect(normalizeExperimentalSettings({}).enableGatewayReplyOutcome).toBe(false);
+    expect(normalizeExperimentalSettings({ enableGatewayReplyOutcome: true }).enableGatewayReplyOutcome).toBe(true);
   });
 
   it("preserves enablePersistentClaudeSessions and defaults it off for legacy stored settings", () => {
