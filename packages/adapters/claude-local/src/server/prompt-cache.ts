@@ -85,6 +85,17 @@ async function hashPathContents(
   hash.update(`other:${relativePath}:${stat.mode}\n`);
 }
 
+/**
+ * Agent files are materialised per run under `.../file-sync/runs/<runId>/live/`, and the instructions
+ * directive embeds that path. Hashing it verbatim gave every run a new key, so a saved session
+ * never matched and Claude was never resumed. The run id carries no meaning for the conversation.
+ */
+const RUN_SCOPED_PATH_RE = /(\/file-sync\/runs\/)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/)/gi;
+
+export function normalizeInstructionsForBundleKey(contents: string): string {
+  return contents.replace(RUN_SCOPED_PATH_RE, "$1<run>");
+}
+
 async function buildClaudePromptBundleKey(input: {
   skills: SkillEntry[];
   instructionsContents: string | null;
@@ -93,7 +104,7 @@ async function buildClaudePromptBundleKey(input: {
   hash.update("paperclip-claude-prompt-bundle:v1\n");
   if (input.instructionsContents) {
     hash.update("instructions\n");
-    hash.update(input.instructionsContents);
+    hash.update(normalizeInstructionsForBundleKey(input.instructionsContents));
     hash.update("\n");
   } else {
     hash.update("instructions:none\n");
