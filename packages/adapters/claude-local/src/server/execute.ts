@@ -84,6 +84,15 @@ import {
   writePaperclipClaudeMcpConfig,
 } from "./claude-config.js";
 import {
+  pruneClaudeSessionStore,
+  removeStoredClaudeSession,
+  resolveClaudeSessionStoreRoot,
+  resolveClaudeSessionStoreTtlMs,
+  restoreClaudeSession,
+  saveClaudeSession,
+  shouldUseClaudeSessionStore,
+} from "./session-store.js";
+import {
   claudeCliVersionAtLeast,
   claudeCommandLooksLike,
   claudeCommandSupportsEffortFlag,
@@ -1306,6 +1315,68 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       }
     }
 
+    // Persistent sessions: a managed AI connection deletes its temporary home after every run,
+    // taking the conversation file with it. Copy this task's file back in before resuming and out
+    // again afterwards. Any failure falls back to a fresh session, exactly as without the store.
+    const useSessionStore = shouldUseClaudeSessionStore({
+      contextFlag: context.paperclipPersistManagedClaudeSessions,
+      managedAiConnection: config.managedAiConnection,
+      executionTargetIsRemote,
+      persistManagedSessions: config.persistManagedSessions,
+    });
+    const sessionStoreRoot = resolveClaudeSessionStoreRoot(claudeRuntimeStateDir);
+    const sessionStoreConfigDir = resolveSharedClaudeConfigDir(effectiveEnv);
+    const sessionStoreNote = async (message: string) => {
+      try {
+        await onLog("stdout", `[paperclip] ${message}\n`);
+      } catch {
+        // log stream may be closed
+      }
+    };
+    if (useSessionStore && sessionId) {
+      try {
+        const restored = await restoreClaudeSession({
+          storeRoot: sessionStoreRoot,
+          claudeConfigDir: sessionStoreConfigDir,
+          cwd: effectiveExecutionCwd,
+          sessionId,
+        });
+        if (restored) await sessionStoreNote(`Restored Claude session ${sessionId} from the agent session store.`);
+      } catch (error) {
+        await sessionStoreNote(
+          `Could not restore Claude session ${sessionId} from the agent session store: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+    const persistClaudeSession = async <T extends { sessionId?: string | null; clearSession?: boolean }>(
+      result: T,
+    ): Promise<T> => {
+      if (!useSessionStore) return result;
+      try {
+        if (result.clearSession) {
+          for (const id of new Set([runtimeSessionId, result.sessionId ?? ""])) {
+            if (id) {
+              await removeStoredClaudeSession({ storeRoot: sessionStoreRoot, cwd: effectiveExecutionCwd, sessionId: id });
+            }
+          }
+        } else if (result.sessionId) {
+          const saved = await saveClaudeSession({
+            storeRoot: sessionStoreRoot,
+            claudeConfigDir: sessionStoreConfigDir,
+            cwd: effectiveExecutionCwd,
+            sessionId: result.sessionId,
+          });
+          if (saved) await sessionStoreNote(`Saved Claude session ${result.sessionId} to the agent session store.`);
+        }
+        await pruneClaudeSessionStore(sessionStoreRoot, resolveClaudeSessionStoreTtlMs(process.env));
+      } catch (error) {
+        await sessionStoreNote(
+          `Could not update the agent session store: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+      return result;
+    };
+
     const initial = await runAttempt(sessionId ?? null);
     const sessionErrorKind =
       sessionId &&
@@ -1352,11 +1423,18 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
           }
         }
       }
+      if (useSessionStore && sessionId) {
+        await removeStoredClaudeSession({ storeRoot: sessionStoreRoot, cwd: effectiveExecutionCwd, sessionId }).catch(() => {});
+      }
       const retry = await runAttempt(null);
-      return toAdapterResult(retry, { fallbackSessionId: null, clearSessionOnMissingSession: true });
+      return persistClaudeSession(
+        toAdapterResult(retry, { fallbackSessionId: null, clearSessionOnMissingSession: true }),
+      );
     }
 
-    return toAdapterResult(initial, { fallbackSessionId: runtimeSessionId || runtime.sessionId });
+    return persistClaudeSession(
+      toAdapterResult(initial, { fallbackSessionId: runtimeSessionId || runtime.sessionId }),
+    );
   } finally {
     try {
       await providerStop.collectBeforeRestore();

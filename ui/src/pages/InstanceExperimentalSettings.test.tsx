@@ -99,6 +99,7 @@ function defaultExperimentalSettings(): InstanceExperimentalSettingsPayload {
     enableExternalObjects: false,
     enableBuiltInAgents: false,
     enableBetaSkills: false,
+    enablePersistentClaudeSessions: false,
     enableSummaries: false,
     enableStatusCards: false,
     enableDecisions: false,

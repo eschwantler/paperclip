@@ -221,6 +221,7 @@ export function InstanceExperimentalSettings() {
   const enableExternalObjects = experimentalQuery.data?.enableExternalObjects === true;
   const enableBuiltInAgents = experimentalQuery.data?.enableBuiltInAgents === true;
   const enableBetaSkills = experimentalQuery.data?.enableBetaSkills === true;
+  const enablePersistentClaudeSessions = experimentalQuery.data?.enablePersistentClaudeSessions === true;
   const enableSummaries = experimentalQuery.data?.enableSummaries === true;
   const enableStatusCards = experimentalQuery.data?.enableStatusCards === true;
   const summariesManaged = managedKeys.enableSummaries?.managed === true;
@@ -480,6 +481,18 @@ export function InstanceExperimentalSettings() {
           settingKey="enableNativeRunner"
           managed={managedKeys.enableNativeRunner}
           ariaLabel="Toggle Paperclip Runner experimental setting"
+        />
+
+        <ExperimentalToggleCard
+          title="Persistent Claude sessions"
+          description="Keep each task's Claude Code conversation between runs when an agent uses a managed AI connection, so follow-up comments resume the same session. Applies to the Claude CLI engine on local runs."
+          footnote="Takes effect on the next run. Turning this off starts fresh sessions again; stored conversations are kept until they expire. An agent can opt out with persistManagedSessions: false in its adapter settings."
+          checked={enablePersistentClaudeSessions}
+          onCheckedChange={(checked) => toggleMutation.mutate({ enablePersistentClaudeSessions: checked })}
+          disabled={toggleMutation.isPending}
+          settingKey="enablePersistentClaudeSessions"
+          managed={managedKeys.enablePersistentClaudeSessions}
+          ariaLabel="Toggle persistent Claude sessions experimental setting"
         />
 
         <ExperimentalToggleCard

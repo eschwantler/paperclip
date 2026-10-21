@@ -59,6 +59,7 @@ describe("instance settings service", () => {
       enableExperimentalFileViewer: true,
       enableBuiltInAgents: true,
       enableBetaSkills: false,
+      enablePersistentClaudeSessions: false,
       enableSummaries: false,
       enableStatusCards: false,
       enableDecisions: false,
@@ -217,6 +218,12 @@ describe("instance settings service", () => {
     expect(normalizeExperimentalSettings(undefined).enableBuiltInAgents).toBe(false);
     expect(normalizeExperimentalSettings({}).enableBuiltInAgents).toBe(false);
     expect(normalizeExperimentalSettings({ enableExternalObjects: true }).enableBuiltInAgents).toBe(false);
+  });
+
+  it("preserves enablePersistentClaudeSessions and defaults it off for legacy stored settings", () => {
+    expect(normalizeExperimentalSettings(undefined).enablePersistentClaudeSessions).toBe(false);
+    expect(normalizeExperimentalSettings({}).enablePersistentClaudeSessions).toBe(false);
+    expect(normalizeExperimentalSettings({ enablePersistentClaudeSessions: true }).enablePersistentClaudeSessions).toBe(true);
   });
 
   it("preserves enableBetaSkills and defaults it off for legacy stored settings", () => {

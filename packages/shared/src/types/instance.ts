@@ -90,6 +90,8 @@ export interface InstanceExperimentalSettings {
   enableSmokeLab: boolean;
   enableBuiltInAgents: boolean;
   enableBetaSkills: boolean;
+  /** Keep each task's Claude Code conversation between runs of managed-connection agents. */
+  enablePersistentClaudeSessions: boolean;
   enableSummaries: boolean;
   enableStatusCards: boolean;
   enableDecisions: boolean;

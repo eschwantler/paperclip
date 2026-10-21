@@ -25056,6 +25056,14 @@ export function heartbeatService(
               projectId: issueRef?.projectId ?? null,
               issueId: issueRef?.id ?? null,
             });
+            // Read per run so the toggle takes effect without a restart. Carried in the run
+            // context, not the adapter config, so flipping it never changes the saved-session fingerprint.
+            if (
+              agent.adapterType === "claude_local" &&
+              (await instanceSettings.getExperimental()).enablePersistentClaudeSessions === true
+            ) {
+              adapterContext.paperclipPersistManagedClaudeSessions = true;
+            }
             if (managedMcpConfig) {
               adapterContext.paperclipManagedMcp = managedMcpConfig;
             }

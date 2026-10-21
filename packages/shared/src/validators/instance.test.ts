@@ -110,6 +110,7 @@ describe("instance experimental settings validators", () => {
     const settings = instanceExperimentalSettingsSchema.parse({});
 
     expect(settings.enableBetaSkills).toBe(false);
+    expect(settings.enablePersistentClaudeSessions).toBe(false);
   });
 
   it("defaults the retired Apps compatibility key on", () => {

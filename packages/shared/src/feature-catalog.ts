@@ -243,6 +243,14 @@ export const INSTANCE_FEATURE_CATALOG: Record<InstanceFeatureKey, FeatureCatalog
     cloudDefault: false,
     selfHostedDefault: false,
   },
+  enablePersistentClaudeSessions: {
+    title: "Persistent Claude sessions",
+    description:
+      "Keep each task's Claude Code conversation between runs when an agent uses a managed AI connection, so follow-up comments resume the same session.",
+    tier: "preference",
+    cloudDefault: false,
+    selfHostedDefault: false,
+  },
   enableSummaries: {
     title: "Summaries",
     description:
