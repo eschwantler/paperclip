@@ -2,6 +2,8 @@ import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
+import { randomBytes } from "node:crypto";
+import postgres from "postgres";
 import { applyPendingMigrations, closeRegisteredClients, ensurePostgresDatabase } from "./client.js";
 import {
   createEmbeddedPostgresLogBuffer,
@@ -243,7 +245,65 @@ async function startEmbeddedPostgresWithRetry(tempDirPrefix: string): Promise<{
 export const __startEmbeddedPostgresWithRetryForTests = startEmbeddedPostgresWithRetry;
 export const __embeddedPostgresStartMaxAttemptsForTests = EMBEDDED_POSTGRES_START_MAX_ATTEMPTS;
 
+// Optional external Postgres for local runs where the embedded cluster cannot start (for example an
+// unsupported Mac). Set PAPERCLIP_TEST_POSTGRES_URL to a role that may create databases; each test
+// database gets its own throwaway database on that server, dropped on cleanup. Unset: embedded as before.
+function externalTestDatabaseUrl(): URL | null {
+  const raw = process.env.PAPERCLIP_TEST_POSTGRES_URL?.trim();
+  return raw ? new URL(raw) : null;
+}
+
+async function startExternalPostgresTestDatabase(base: URL): Promise<EmbeddedPostgresTestDatabase> {
+  const name = `pc_test_${Date.now().toString(36)}_${randomBytes(4).toString("hex")}`;
+  const admin = new URL(base.toString());
+  admin.pathname = "/postgres";
+  const connection = new URL(base.toString());
+  connection.pathname = `/${name}`;
+  const connectionString = connection.toString();
+
+  await ensurePostgresDatabase(admin.toString(), name);
+  try {
+    await applyPendingMigrations(connectionString);
+  } catch (error) {
+    await dropExternalDatabase(admin.toString(), name);
+    throw error;
+  }
+  return {
+    connectionString,
+    cleanup: async () => {
+      await closeRegisteredClients(connectionString);
+      await dropExternalDatabase(admin.toString(), name);
+    },
+  };
+}
+
+async function dropExternalDatabase(adminUrl: string, name: string): Promise<void> {
+  const sql = postgres(adminUrl, { max: 1 });
+  try {
+    await sql.unsafe(`drop database if exists "${name}" with (force)`);
+  } finally {
+    await sql.end();
+  }
+}
+
+async function probeExternalPostgres(base: URL): Promise<EmbeddedPostgresTestSupport> {
+  const admin = new URL(base.toString());
+  admin.pathname = "/postgres";
+  const sql = postgres(admin.toString(), { max: 1, connect_timeout: 5 });
+  try {
+    await sql`select 1`;
+    return { supported: true };
+  } catch (error) {
+    return { supported: false, reason: `PAPERCLIP_TEST_POSTGRES_URL is not reachable: ${(error as Error).message}` };
+  } finally {
+    await sql.end();
+  }
+}
+
 async function probeEmbeddedPostgresSupport(): Promise<EmbeddedPostgresTestSupport> {
+  const external = externalTestDatabaseUrl();
+  if (external) return await probeExternalPostgres(external);
+
   let started: { dataDir: string; instance: EmbeddedPostgresInstance } | null = null;
 
   try {
@@ -274,6 +334,9 @@ export async function getEmbeddedPostgresTestSupport(): Promise<EmbeddedPostgres
 export async function startEmbeddedPostgresTestDatabase(
   tempDirPrefix: string,
 ): Promise<EmbeddedPostgresTestDatabase> {
+  const external = externalTestDatabaseUrl();
+  if (external) return await startExternalPostgresTestDatabase(external);
+
   // The bounded retry hardens the cluster start against the port race. It throws
   // with the real Postgres output if every attempt fails.
   const { port, dataDir, instance } = await startEmbeddedPostgresWithRetry(tempDirPrefix);
