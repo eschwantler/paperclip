@@ -161,4 +161,13 @@ describe("activity formatting", () => {
       "Run finished without a next step - recovery escalated",
     );
   });
+
+  it("labels a reply recorded as the task outcome by the adapter", () => {
+    expect(formatActivityVerb("issue.outcome_recorded_by_adapter")).toBe("recorded the reply as the outcome of");
+    expect(formatIssueActivityAction("issue.outcome_recorded_by_adapter", { status: "done" }))
+      .toBe("recorded the reply as the task outcome (done)");
+    expect(formatIssueActivityAction("issue.outcome_recorded_by_adapter", { status: "in_review" }))
+      .toBe("recorded the reply as the task outcome (in review)");
+    expect(formatIssueActivityAction("issue.outcome_recorded_by_adapter")).toBe("recorded the reply as the task outcome");
+  });
 });

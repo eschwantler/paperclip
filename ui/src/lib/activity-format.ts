@@ -30,6 +30,7 @@ const ACTIVITY_ROW_VERBS: Record<string, string> = {
   "issue.checked_out": "checked out",
   "issue.released": "released",
   "issue.comment_added": "commented on",
+  "issue.outcome_recorded_by_adapter": "recorded the reply as the outcome of",
   "issue.comment_cancelled": "cancelled a queued comment on",
   "issue.queued_comment_edited": "edited a queued comment on",
   "issue.queued_comments_reordered": "reordered queued comments on",
@@ -128,6 +129,7 @@ const ISSUE_ACTIVITY_LABELS: Record<string, string> = {
   "issue.checked_out": "checked out the issue",
   "issue.released": "released the issue",
   "issue.comment_added": "added a comment",
+  "issue.outcome_recorded_by_adapter": "recorded the reply as the task outcome",
   "issue.comment_cancelled": "cancelled a queued comment",
   "issue.queued_comment_edited": "edited a queued comment",
   "issue.queued_comments_reordered": "reordered queued comments",
@@ -491,6 +493,12 @@ export function formatIssueActivityAction(
   if (action === "issue.updated") {
     const issueUpdatedAction = formatIssueUpdatedAction(details, options);
     if (issueUpdatedAction) return issueUpdatedAction;
+  }
+
+  if (action === "issue.outcome_recorded_by_adapter") {
+    const status = typeof details?.status === "string" ? details.status.replace(/_/g, " ") : null;
+    const base = ISSUE_ACTIVITY_LABELS[action]!;
+    return status ? `${base} (${status})` : base;
   }
 
   const structuredChange = formatStructuredIssueChange({
