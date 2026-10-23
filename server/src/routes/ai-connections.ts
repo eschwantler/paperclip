@@ -1,5 +1,6 @@
 import { supportsLocalAiLogin } from "../services/local-ai-login-policy.js";
 import { readVerifiedLocalAiCredential } from "../services/local-ai-credentials.js";
+import { probeClaudeLongLivedToken } from "@paperclipai/adapter-claude-local/server";
 import { localAiLoginService } from "../services/local-ai-login.js";
 import { z } from "zod";
 import { Router, type Request } from "express";
@@ -345,7 +346,19 @@ export function aiConnectionRoutes(db: Db, options: Parameters<typeof supportsLo
     validate(localAiConnectionSchema),
     async (req, res) => {
       const companyId = req.params.companyId as string;
-      const { localSessionId, ...input } = localAiConnectionSchema.parse(req.body);
+      const { localSessionId, setupToken, ...input } = localAiConnectionSchema.parse(req.body);
+      if (setupToken) {
+        // A pasted `claude setup-token` token needs no local sign-in on this machine.
+        if (input.provider !== "anthropic") throw unprocessable("Only Claude accepts a pasted token.");
+        if (localSessionId) throw unprocessable("Use either a pasted token or a local sign-in, not both.");
+        const userId = await assertAiConnectionCreateAccess(db, req, companyId, input);
+        const attemptStartedAt = new Date();
+        // These tokens are inference-only, so Anthropic's usage endpoint rejects them; run the CLI once instead.
+        if (!(await probeClaudeLongLivedToken(setupToken)))
+          throw unprocessable("Claude did not accept that token. Run claude setup-token again and paste the whole token.");
+        res.status(201).json(await service.save(companyId, userId, input, setupToken, undefined, attemptStartedAt));
+        return;
+      }
       assertLocalLoginAvailable();
       if (input.provider === "anthropic" && !localSessionId) assertLocalOperator(req);
       const userId = await assertAiConnectionCreateAccess(db, req, companyId, input);

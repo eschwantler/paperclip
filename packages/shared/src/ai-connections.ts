@@ -226,6 +226,8 @@ export type AiConnectionLoginIntent = z.infer<
 
 export const localAiConnectionSchema = aiConnectionLoginIntentSchema.extend({
   localSessionId: z.string().uuid().optional(),
+  /** Anthropic only: a long-lived token from `claude setup-token`, pasted instead of a local sign-in. */
+  setupToken: z.string().trim().min(80).max(400).regex(/^[A-Za-z0-9._~+/=-]+$/, "Not a valid token").optional(),
 });
 export const localAiLoginStartSchema = aiConnectionLoginIntentSchema.extend({ restart: z.boolean().optional() });
 export interface LocalAiLoginStatus {

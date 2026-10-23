@@ -601,3 +601,38 @@ export async function getQuotaWindows(): Promise<ProviderQuotaResult> {
     windows: [],
   };
 }
+
+/**
+ * Check a long-lived `claude setup-token` token by running the CLI once, the way a run would use it.
+ * These tokens are inference-only, so the usage endpoint answers 403. Returns false on any failure;
+ * the CLI output is never returned because it can echo credential material.
+ */
+export async function probeClaudeLongLivedToken(token: string): Promise<boolean> {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "claude-token-probe-"));
+  try {
+    const { stdout } = await execFileAsync(
+      "claude",
+      ["-p", "Reply with the single word: ok", "--max-turns", "1", "--setting-sources", "user"],
+      {
+        cwd: dir,
+        timeout: 60_000,
+        maxBuffer: 1024 * 1024,
+        env: {
+          PATH: process.env.PATH ?? "",
+          HOME: dir,
+          XDG_CONFIG_HOME: path.join(dir, "config"),
+          XDG_DATA_HOME: path.join(dir, "data"),
+          CLAUDE_CONFIG_DIR: path.join(dir, "provider"),
+          CLAUDE_CODE_OAUTH_TOKEN: token,
+          ANTHROPIC_API_KEY: "",
+          ANTHROPIC_AUTH_TOKEN: "",
+        },
+      },
+    );
+    return /\bok\b/i.test(stdout);
+  } catch {
+    return false;
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+}

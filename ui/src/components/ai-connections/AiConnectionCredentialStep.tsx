@@ -94,6 +94,25 @@ function SubscriptionConnectionStep({ companyId, provider, initialMethod, fixedM
       testConnection={async () => false}
       managedAccount={{ intent, nameForMethod, initialMethod, fixedMethod: fixedMethod ?? Boolean(connectionId), disabled: loading || Boolean(error) || !name.trim(), onComplete: (result) => { void client.invalidateQueries({ queryKey: ["ai-connections", companyId] }); onComplete(result); } }}
     />}
+    {provider === "anthropic" && !loading && <ClaudeTokenPaste companyId={companyId} intent={intent} disabled={Boolean(error) || !name.trim()} onComplete={(result) => { void client.invalidateQueries({ queryKey: ["ai-connections", companyId] }); onComplete({ ...result, method: "subscription" }); }} />}
+  </div>;
+}
+
+/** Long-lived alternative to the local sign-in: the token from `claude setup-token` lasts about a year instead of a day. */
+function ClaudeTokenPaste({ companyId, intent, disabled, onComplete }: { companyId: string; intent: AiConnectionLoginIntent; disabled: boolean; onComplete: (result: { connectionId: string; grantId: string }) => void }) {
+  const [open, setOpen] = useState(false);
+  const [token, setToken] = useState("");
+  const save = useMutation({
+    mutationFn: () => aiConnectionsApi.connectLocal(companyId, { ...intent, setupToken: token.replace(/\s+/g, "") }),
+    onSuccess: onComplete,
+    onSettled: () => setToken(""),
+  });
+  if (!open) return <button type="button" className="text-sm text-muted-foreground underline underline-offset-4" onClick={() => setOpen(true)}>Paste a long-lived token instead</button>;
+  return <div className="space-y-3 rounded-md border p-3 text-sm text-muted-foreground">
+    <p>On a machine signed in to the Claude account you want to use, run <code className="font-mono text-foreground">claude setup-token</code> and paste the whole token here. It lasts about a year and does not expire daily. Anyone holding it can use that account, so never paste it into chat.</p>
+    <Input type="password" autoComplete="off" aria-label="Claude long-lived token" value={token} onChange={(event) => setToken(event.target.value)} placeholder="Paste token" />
+    {save.error && <p role="alert" className="text-destructive">{save.error.message}</p>}
+    <Button disabled={disabled || token.replace(/\s+/g, "").length < 80 || save.isPending} onClick={() => save.mutate()}>{save.isPending ? "Checking token…" : "Connect with token"}</Button>
   </div>;
 }
 

@@ -43,6 +43,9 @@ const SENSITIVE_KEYS = new Set<string>([
   "idtoken",
   "api_key",
   "apikey",
+  // Long-lived Claude token pasted into the AI connection form.
+  "setuptoken",
+  "setup_token",
   // Probe keys are transient, including rejected or future provider names.
   // Redact the whole container instead of maintaining a second key allowlist.
   "testcredentials",
