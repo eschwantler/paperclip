@@ -31,6 +31,19 @@ What changed:
 3. In Paperclip, go to Connect (or Reconnect) -> Claude -> **Paste a long-lived token instead**. Paste the token and click **Connect with token**.
 4. Paperclip checks the token with one CLI call. If it accepts the token, the connection no longer expires daily.
 
+## Direct reconnect URL
+The menu does not always offer reconnect. The "Reconnect account" button only navigates to `/apps/connect` with query parameters, so the page can be opened by hand (read from the UI code; not yet confirmed in a browser):
+
+```
+http://localhost:3100/<companyPrefix>/apps/connect?source=anthropic&reconnect=<connectionId>&method=ai-subscription
+```
+
+- `<companyPrefix>`: the first path segment of any page in Paperclip, for example `/ACME/issues`. Drop it if your setup has no prefix.
+- `<connectionId>`: the broken Claude connection. Find it with `curl http://localhost:3100/api/companies/<companyId>/ai-connections` and copy the `connectionId` of the Anthropic subscription entry.
+- `source=anthropic` and `method=ai-subscription` are fixed for a Claude subscription connection.
+
+The Claude connect step shows **Paste a long-lived token instead**. If the connection ID is hard to find, delete the broken Claude connection and create a new one through the same Connect form.
+
 ## Notes
 - The `claude` CLI has to be on the server's `PATH`, because the verification step runs it.
 - The token grants access to that Claude account. Each person should generate their own, and nobody should paste one into chat or commit it.
