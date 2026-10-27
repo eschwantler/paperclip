@@ -66,6 +66,7 @@ import { buildHeartbeatRunStatusLiveEventPayload } from "./heartbeat-run-status-
 export { buildHeartbeatRunStatusLiveEventPayload } from "./heartbeat-run-status-payload.js";
 import { buildExecutionContinuation, StaleExecutionContinuationError } from "./execution-continuation.js";
 import { renderPaperclipWakePrompt } from "@paperclipai/adapter-utils/server-utils";
+import { memoryHydrateService } from "./memory-hydrate.js";
 import { PROJECT_REPOSITORIES_DIR, readGitWorkspaceSnapshot, disposeGitWorkspaceSnapshot } from "@paperclipai/adapter-utils/git-workspace-sync";
 import { isWorkspaceGitScanError, WorkspaceGitScanError, WORKSPACE_GIT_SCAN_ERROR_CODES } from "./workspace-git-operation-scheduler.js";
 import { captureDirectorySnapshot, disposeDirectorySnapshot, mergeDirectoryWithBaseline } from "@paperclipai/adapter-utils/workspace-restore-merge";
@@ -9634,6 +9635,7 @@ export function heartbeatService(
   const issuesSvc = issueService(db);
   const treeControlSvc = issueTreeControlService(db);
   const executionWorkspacesSvc = executionWorkspaceService(db);
+  const memoryHydrateSvc = memoryHydrateService(db, options.pluginWorkerManager);
   const environmentsSvc = environmentService(db);
   const environmentRuntime =
     options.environmentRuntime ??
@@ -21123,6 +21125,16 @@ export function heartbeatService(
       } else {
         delete context.paperclipContinuationSummary;
       }
+      // Recall is best-effort and re-run on every wake, so a resumed session never keeps a stale block.
+      const recalledMemory = await memoryHydrateSvc.hydrate({
+        companyId: agent.companyId,
+        agentId: agent.id,
+        issueId: issueRef?.id ?? null,
+        runId: run.id,
+        query: readNonEmptyString(issueRef?.title) ?? null,
+      });
+      if (recalledMemory) context.paperclipMemory = recalledMemory;
+      else delete context.paperclipMemory;
       const pinnedSkillTestContext =
         issueRef?.workMode === "skill_test"
           ? await getPinnedSkillTestContext(agent.companyId, issueRef.id)

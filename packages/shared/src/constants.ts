@@ -1321,6 +1321,7 @@ export type PluginCategory = (typeof PLUGIN_CATEGORIES)[number];
  */
 export const PLUGIN_CAPABILITIES = [
   "ai.connections.route",
+  "memory.hydrate",
   // Data Read
   "companies.read",
   "projects.read",

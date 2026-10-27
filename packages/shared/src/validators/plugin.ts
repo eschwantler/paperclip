@@ -783,6 +783,7 @@ export const pluginManifestV1Schema = z.object({
   ).optional(),
   capabilities: z.array(z.enum(PLUGIN_CAPABILITIES)).min(1),
   aiConnectionRouter: z.object({ name: z.string().trim().min(1).max(100), description: z.string().trim().min(1).max(500) }).strict().optional(),
+  memoryProvider: z.object({ name: z.string().trim().min(1).max(100), description: z.string().trim().min(1).max(500) }).strict().optional(),
   entrypoints: z.object({
     worker: z.string().min(1),
     ui: z.string().min(1).optional(),
@@ -838,6 +839,10 @@ export const pluginManifestV1Schema = z.object({
 
   if (manifest.aiConnectionRouter && !manifest.capabilities.includes("ai.connections.route")) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "ai.connections.route is required for aiConnectionRouter", path: ["capabilities"] });
+  }
+
+  if (manifest.memoryProvider && !manifest.capabilities.includes("memory.hydrate")) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "memory.hydrate is required for memoryProvider", path: ["capabilities"] });
   }
 
   // tools require agent.tools.register (PLUGIN_SPEC.md §11)

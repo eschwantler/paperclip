@@ -47,6 +47,7 @@ import {
   hydrateFreshSessionHandoff,
   selectInitialCommunicationGuidance,
   selectPaperclipPromptSections,
+  renderPaperclipMemoryNote,
   isPaperclipRecoveryWakePayload,
   rewriteWorkspaceCwdEnvVarsForExecution,
   shapePaperclipWorkspaceEnvForExecution,
@@ -915,6 +916,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       resumedSession: Boolean(resumeSessionId),
       includeCommunicationGuidance: false,
     });
+    const memoryNote = renderPaperclipMemoryNote(context);
     const shouldUseResumeDeltaPrompt = Boolean(resumeSessionId) && wakePrompt.length > 0;
     const renderedPrompt = shouldUseResumeDeltaPrompt || isPaperclipRecoveryWakePayload(context.paperclipWake)
       ? ""
@@ -924,6 +926,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       renderedBootstrapPrompt,
       selectInitialCommunicationGuidance(context, { resumedSession: Boolean(resumeSessionId) }),
       wakePrompt,
+      memoryNote,
       sessionHandoffNote,
       taskContextNote,
       renderedPrompt,
@@ -932,6 +935,7 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
       promptChars: prompt.length,
       bootstrapPromptChars: renderedBootstrapPrompt.length,
       wakePromptChars: wakePrompt.length,
+      memoryChars: memoryNote.length,
       sessionHandoffChars: sessionHandoffNote.length,
       taskContextChars: taskContextNote.length,
       heartbeatPromptChars: renderedPrompt.length,

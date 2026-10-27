@@ -1,4 +1,4 @@
-import type { AiConnectionRouterRequest, AiConnectionRouterResult } from "@paperclipai/shared";
+import type { AiConnectionRouterRequest, AiConnectionRouterResult, MemoryPreRunHydrateRequest, MemoryPreRunHydrateResult } from "@paperclipai/shared";
 /**
  * JSON-RPC 2.0 message types and protocol helpers for the host ↔ worker IPC
  * channel.
@@ -1352,6 +1352,8 @@ export interface HostToWorkerMethods {
     result: DetectExternalObjectsResult,
   ];
   routeAiConnection: [params: AiConnectionRouterRequest, result: AiConnectionRouterResult];
+  /** Recall memory for a run that is about to start. Requires memory.hydrate. */
+  preRunHydrate: [params: MemoryPreRunHydrateRequest, result: MemoryPreRunHydrateResult];
   resolveExternalObject: [
     params: ResolveExternalObjectParams,
     result: PluginExternalObjectResolveResult,
@@ -1481,6 +1483,7 @@ export const HOST_TO_WORKER_OPTIONAL_METHODS: readonly HostToWorkerMethodName[] 
   "executeTool",
   "detectExternalObjects",
   "routeAiConnection",
+  "preRunHydrate",
   "resolveExternalObject",
   "refreshExternalObjects",
   "environmentValidateConfig",

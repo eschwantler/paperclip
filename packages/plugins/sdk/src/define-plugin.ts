@@ -1,4 +1,4 @@
-import type { AiConnectionRouterRequest, AiConnectionRouterResult } from "@paperclipai/shared";
+import type { AiConnectionRouterRequest, AiConnectionRouterResult, MemoryPreRunHydrateRequest, MemoryPreRunHydrateResult } from "@paperclipai/shared";
 /**
  * `definePlugin` — the top-level helper for authoring a Paperclip plugin.
  *
@@ -348,6 +348,14 @@ export interface PluginDefinition {
    */
   /** Propose a member from host-authorized candidates. Requires ai.connections.route. */
   onRouteAiConnection?(params: AiConnectionRouterRequest): Promise<AiConnectionRouterResult>;
+
+  /**
+   * Recall memory for a run that is about to start. The host renders the returned
+   * snippets into the prompt, so the agent gets memory without asking for it.
+   * A slow, failing or malformed reply is dropped and the run starts without memory.
+   * Requires `memory.hydrate` and a `memoryProvider` manifest entry.
+   */
+  onPreRunHydrate?(params: MemoryPreRunHydrateRequest): Promise<MemoryPreRunHydrateResult>;
 
   onResolveExternalObject?(
     params: ResolveExternalObjectParams,

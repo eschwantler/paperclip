@@ -689,6 +689,8 @@ export interface PaperclipPluginManifestV1 {
   capabilities: PluginCapability[];
   /** Opt into the native pooled-connection catalog, setup, and management UI. */
   aiConnectionRouter?: { name: string; description: string };
+  /** Recall memory into a run before it starts through onPreRunHydrate. Requires memory.hydrate. */
+  memoryProvider?: { name: string; description: string };
   /** Entrypoint paths relative to the package root. */
   entrypoints: {
     /** Path to the worker entrypoint (required). */
