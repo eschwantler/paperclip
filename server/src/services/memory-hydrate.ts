@@ -64,3 +64,13 @@ export function memoryHydrateService(db: Db, workerManager?: PluginWorkerManager
   }
   return { hydrate };
 }
+
+/**
+ * Recalled memory is for the prompt only. Anything that writes the run context to the database
+ * goes through this first, so recalled text never lands in `heartbeat_runs.contextSnapshot`.
+ */
+export function withoutRecalledMemory<T>(context: T): T {
+  if (!context || typeof context !== "object" || !("paperclipMemory" in (context as object))) return context;
+  const { paperclipMemory: _recalled, ...rest } = context as Record<string, unknown>;
+  return rest as T;
+}

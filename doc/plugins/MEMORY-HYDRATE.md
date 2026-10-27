@@ -27,7 +27,14 @@ memory.
    a 2,000 character profile summary.
 4. The merged result is stored as `context.paperclipMemory`. It is set or cleared on every
    wake, so a resumed session never keeps a stale block and a forged value cannot survive.
-5. `renderPaperclipMemoryNote` (`packages/adapter-utils/src/server-utils.ts`) renders it as
+5. Recalled text is **not persisted**. `withoutRecalledMemory` (`server/src/services/memory-hydrate.ts`)
+   strips `paperclipMemory` from the context before every write to
+   `heartbeat_runs.contextSnapshot`: the direct writes in `heartbeat.ts` and the `patch` of
+   `setRunStatus` / `setRunStatusFromLive`. A test fails if `heartbeat.ts` gains a raw
+   `.set({ contextSnapshot: context })`. The agent still sees the text in its prompt, so the
+   provider's own session transcript (for example Claude's) will contain it; Paperclip's database
+   and activity log do not.
+6. `renderPaperclipMemoryNote` (`packages/adapter-utils/src/server-utils.ts`) renders it as
    its own prompt section, separate from the wake prompt, so it appears on fresh and
    resumed runs.
 
@@ -105,8 +112,6 @@ Config: `baseUrl`, `apiKey`, `sharedBank` (default `team-shared`), `agentBankPre
 
 - Other adapters rendering the block.
 - A UI label for the `memory.hydrated` activity.
-- Checking whether `context.paperclipMemory` is persisted with the run record, which would
-  store recalled text there.
 - `post_run_capture`, deliberately deferred: automatic capture needs redaction first and
   must write to the agent's own bank only.
 - A live test against Hindsight. Tests use a fake server.

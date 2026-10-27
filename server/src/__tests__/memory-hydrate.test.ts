@@ -4,7 +4,8 @@ import { pluginManifestV1Schema } from "@paperclipai/shared";
 const logActivity = vi.hoisted(() => vi.fn(async () => ({})));
 vi.mock("../services/activity-log.js", () => ({ logActivity }));
 
-import { memoryHydrateService } from "../services/memory-hydrate.js";
+import { readFileSync } from "node:fs";
+import { memoryHydrateService, withoutRecalledMemory } from "../services/memory-hydrate.js";
 
 const request = { companyId: "c1", agentId: "a1", issueId: "i1", runId: "r1", query: "ISMS review" };
 const provider = (id: string, extra: Record<string, unknown> = {}) => ({
@@ -65,5 +66,24 @@ describe("memoryProvider manifest", () => {
     expect(withoutCap.success).toBe(false);
     const withCap = pluginManifestV1Schema.safeParse({ ...base, capabilities: ["memory.hydrate"], memoryProvider: { name: "M", description: "D" } });
     expect(withCap.success).toBe(true);
+  });
+});
+
+describe("recalled memory is never persisted", () => {
+  it("strips paperclipMemory and leaves the rest of the context alone", () => {
+    const context = { issueId: "i1", paperclipMemory: { snippets: [{ text: "private note" }] } };
+    expect(withoutRecalledMemory(context)).toEqual({ issueId: "i1" });
+    expect(context.paperclipMemory).toBeDefined();
+    const plain = { issueId: "i1" };
+    expect(withoutRecalledMemory(plain)).toBe(plain);
+    expect(withoutRecalledMemory(null)).toBeNull();
+  });
+
+  it("heartbeat.ts never writes the full run context to the database unwrapped", () => {
+    const source = readFileSync(new URL("../services/heartbeat.ts", import.meta.url), "utf8");
+    expect(source).toContain("memoryHydrateSvc.hydrate(");
+    const unwrappedWrites = source.match(/\.set\(\{[^{}]*?contextSnapshot: context,/g) ?? [];
+    expect(unwrappedWrites).toEqual([]);
+    expect(source).toMatch(/contextSnapshot: withoutRecalledMemory\(patch\.contextSnapshot\)/);
   });
 });
