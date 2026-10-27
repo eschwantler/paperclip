@@ -709,3 +709,9 @@ The right abstraction is:
 - Providers own extraction, ranking, storage, and provider-native memory semantics.
 
 That gives Paperclip a stable memory service without locking the product to one memory philosophy or one vendor, and it integrates the AWS lessons without importing AWS's model into core.
+
+## Implementation status (fork)
+
+The fork implements `pre_run_hydrate` only, as a plugin hook plus a Hindsight plugin. See
+`doc/plugins/MEMORY-HYDRATE.md`. The rest of this plan (the full `MemoryAdapter` contract,
+bindings, capture hooks, correction and browse APIs) is not implemented.
