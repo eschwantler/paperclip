@@ -1,0 +1,33 @@
+{
+  "name": "@paperclipai/plugin-hindsight-memory",
+  "version": "0.1.0",
+  "description": "Recalls Hindsight memory into an agent run before it starts",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "paperclipPlugin": {
+    "manifest": "./dist/manifest.js",
+    "worker": "./dist/worker.js"
+  },
+  "scripts": {
+    "prebuild": "pnpm --filter @paperclipai/plugin-sdk ensure-build-deps",
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "typecheck": "pnpm --filter @paperclipai/plugin-sdk ensure-build-deps && tsc --noEmit"
+  },
+  "dependencies": {
+    "@paperclipai/plugin-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=24.11.0"
+  }
+}
