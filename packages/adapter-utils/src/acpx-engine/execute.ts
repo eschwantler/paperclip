@@ -80,6 +80,7 @@ import {
   hydrateFreshSessionHandoff,
   selectInitialCommunicationGuidance,
   selectPaperclipPromptSections,
+  renderPaperclipMemoryNote,
   resolveLegacyPaperclipDesiredSkillNames,
   removeMaintainerOnlySkillSymlinks,
   rewriteWorkspaceCwdEnvVarsForExecution,
@@ -3051,6 +3052,7 @@ async function buildPrompt(ctx: AdapterExecutionContext, resumedSession: boolean
     shouldUseResumeDeltaPrompt || (externalChatTurn && !hasCustomPromptTemplate)
       ? ""
       : renderTemplate(promptTemplate, templateData);
+  const memoryNote = renderPaperclipMemoryNote(context);
   const sessionHandoffNote = asString(context.paperclipSessionHandoffMarkdown, "").trim();
   const paperclipEnvNote = externalChatTurn ? "" : renderPaperclipEnvNote(env);
   const apiAccessNote = externalChatTurn ? "" : renderApiAccessNote(env);
@@ -3059,6 +3061,7 @@ async function buildPrompt(ctx: AdapterExecutionContext, resumedSession: boolean
     renderedBootstrapPrompt,
     selectInitialCommunicationGuidance(context, { resumedSession }),
     wakePrompt,
+    memoryNote,
     sessionHandoffNote,
     taskContextNote,
     paperclipEnvNote,
@@ -3074,6 +3077,7 @@ async function buildPrompt(ctx: AdapterExecutionContext, resumedSession: boolean
       instructionsChars: promptInstructionsPrefix.length,
       bootstrapPromptChars: renderedBootstrapPrompt.length,
       wakePromptChars: wakePrompt.length,
+      memoryChars: memoryNote.length,
       sessionHandoffChars: sessionHandoffNote.length,
       taskContextChars: taskContextNote.length,
       runtimeNoteChars: paperclipEnvNote.length + apiAccessNote.length,

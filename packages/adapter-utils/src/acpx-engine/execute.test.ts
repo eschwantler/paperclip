@@ -701,6 +701,30 @@ describe("shared ACPX engine runtime behavior", () => {
     expect(promptMetrics?.runtimeNoteChars).toBeGreaterThan(0);
   });
 
+  it("renders recalled memory in the ACPX prompt and omits it when nothing was recalled", async () => {
+    const withMemory = await runExecutor(
+      { agent: "custom", agentCommand: "node ./fake-acp.js" },
+      {
+        context: {
+          taskId: "issue-1",
+          wakeReason: "issue_assigned",
+          paperclipWake: { reason: "issue_assigned", issue: { id: "issue-1", identifier: "TEST-1" } },
+          paperclipMemory: { snippets: [{ text: "DPA retention is now 24 months.", source: "team-shared", recordId: "mem-1" }] },
+        },
+      },
+    );
+    const prompt = String(withMemory.meta[0]?.prompt ?? "");
+    expect(prompt).toContain("Recalled memory");
+    expect(prompt).toContain("[team-shared · mem-1] DPA retention is now 24 months.");
+    expect((withMemory.meta[0]?.promptMetrics as Record<string, number>).memoryChars).toBeGreaterThan(0);
+
+    const without = await runExecutor(
+      { agent: "custom", agentCommand: "node ./fake-acp.js" },
+      { context: { taskId: "issue-1", wakeReason: "issue_assigned", paperclipWake: { reason: "issue_assigned", issue: { id: "issue-1", identifier: "TEST-1" } } } },
+    );
+    expect(String(without.meta[0]?.prompt ?? "")).not.toContain("Recalled memory");
+  });
+
   it("keeps large continuation history in ACP turns and preserves resume deltas", async () => {
     const root = await makeTempRoot();
     const config = {

@@ -63,10 +63,21 @@ correct it.
 
 ## Adapter coverage
 
-Only `claude-local` renders the block today (`claude-local/src/server/execute.ts`). Other
-adapters still call `selectPaperclipPromptSections` and will ignore `paperclipMemory` until
+`claude_local` runs on one of two engines, and `engine` unset means **ACP** (see
+`resolveClaudeExecutionEngine` in `packages/adapters/claude-local/src/server/acp.ts`). Both
+render the block:
+
+- ACP (default): `packages/adapter-utils/src/acpx-engine/execute.ts`, `buildPrompt`.
+- CLI (`engine: "cli"`): `packages/adapters/claude-local/src/server/execute.ts`.
+
+Other adapters still call `selectPaperclipPromptSections` and ignore `paperclipMemory` until
 they add `renderPaperclipMemoryNote` to their prompt. `selectPaperclipPromptSections` is
-unchanged on purpose, so existing callers and tests are unaffected.
+unchanged on purpose, so existing callers and tests are unaffected. Both engines report
+`memoryChars` in `promptMetrics`.
+
+The first version of this hook only covered the CLI engine, so on the default ACP engine
+recall ran but the agent never saw it. Fixed in the commit that added the ACP rendering and
+its test (`execute.test.ts`, "renders recalled memory in the ACPX prompt").
 
 ## Writing a memory plugin
 
